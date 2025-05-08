@@ -132,6 +132,28 @@ def add_ptt_artifacts(audio, sr):
     
     return result
 
+def mix_with_background(audio, background_audio, background_level=0.2):
+    """Mix the processed audio with a background effect like dust or static."""
+    # Make sure the background audio is the same length as the main audio
+    if len(background_audio) < len(audio):
+        # If background is shorter, loop it to match the length of the main audio
+        repetitions = int(np.ceil(len(audio) / len(background_audio)))
+        background_audio = np.tile(background_audio, repetitions)
+        # Trim to match exactly
+        background_audio = background_audio[:len(audio)]
+    elif len(background_audio) > len(audio):
+        # If background is longer, trim it
+        background_audio = background_audio[:len(audio)]
+    
+    # Mix the audio with the background
+    mixed_audio = audio + (background_audio * background_level)
+    
+    # Normalize to avoid clipping
+    if np.max(np.abs(mixed_audio)) > 1.0:
+        mixed_audio = mixed_audio / np.max(np.abs(mixed_audio)) * 0.95
+    
+    return mixed_audio
+
 def simulate_old_radio(audio, sr, **style_params):
     """Apply effects to simulate an old radio."""
     # Get style parameters or use defaults
@@ -140,6 +162,8 @@ def simulate_old_radio(audio, sr, **style_params):
     distortion_amount = style_params.get('distortion_amount', 1.2)
     noise_factor = style_params.get('noise_factor', 0.008)
     target_sample_rate = style_params.get('sample_rate', 8000)
+    dust_level = style_params.get('dust_level', 0.2)
+    use_dust_effect = style_params.get('use_dust_effect', True)
     
     # Apply bandpass filter to limit frequency range
     audio = apply_bandpass_filter(audio, sr, low_cutoff=low_cutoff, high_cutoff=high_cutoff)
@@ -153,6 +177,26 @@ def simulate_old_radio(audio, sr, **style_params):
     # Reduce sample rate to simulate low-quality audio
     if target_sample_rate and target_sample_rate < sr:
         audio = reduce_sample_rate(audio, sr, target_sample_rate)
+    
+    # Add dust effect if enabled
+    if use_dust_effect:
+        try:
+            import os
+            # Create resources directory if it doesn't exist
+            if not os.path.exists('resources'):
+                os.makedirs('resources')
+                
+            dust_path = 'resources/dusteffect.wav'
+            if os.path.exists(dust_path):
+                # Load the dust effect
+                dust_effect, dust_sr = librosa.load(dust_path, sr=sr)
+                # Mix with the processed audio
+                audio = mix_with_background(audio, dust_effect, dust_level)
+                print(f"Added dust effect at level {dust_level}")
+            else:
+                print(f"Warning: Dust effect file not found at {dust_path}")
+        except Exception as e:
+            print(f"Error adding dust effect: {str(e)}")
     
     return audio
 

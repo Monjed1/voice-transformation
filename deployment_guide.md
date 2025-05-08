@@ -158,7 +158,9 @@ curl -X POST -H "Content-Type: application/json" \
       "distortion_amount": 1.3,
       "noise_factor": 0.01,
       "low_cutoff": 250,
-      "high_cutoff": 3500
+      "high_cutoff": 3500,
+      "dust_level": 0.3,
+      "use_dust_effect": true
     }
   }' \
   https://your_domain.com/transform-url/
@@ -210,6 +212,8 @@ You can customize the voice transformation by providing `style_params` in your A
 - `low_cutoff`: Lower frequency cutoff in Hz (default: 300)
 - `high_cutoff`: Upper frequency cutoff in Hz (default: 3000)
 - `sample_rate`: Target sample rate for quality reduction (default: 8000)
+- `dust_level`: Level of background dust effect (default: 0.2)
+- `use_dust_effect`: Whether to use the dust effect (default: true)
 
 ### Walkie-Talkie Specific Parameters
 
@@ -232,7 +236,8 @@ When you call the transformation endpoint, you'll receive a JSON response like:
   "status": "success",
   "style_params": {
     "distortion_amount": 1.3,
-    "noise_factor": 0.01
+    "noise_factor": 0.01,
+    "dust_level": 0.2
   },
   "download_url": "/download/abc123_radio"
 }
@@ -244,4 +249,4 @@ The `download_url` field contains the path to download the processed MP3 file.
 
 - Check logs: `sudo tail -f /var/log/voice-transformation.out.log`
 - Restart the application: `sudo supervisorctl restart voice-transformation`
-- Check Nginx status: `sudo systemctl status nginx` 
+- Check Nginx status: `sudo systemctl status nginx`

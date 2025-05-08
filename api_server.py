@@ -29,6 +29,8 @@ class StyleParams(BaseModel):
     low_cutoff: Optional[int] = None
     high_cutoff: Optional[int] = None
     sample_rate: Optional[int] = None
+    dust_level: Optional[float] = None
+    use_dust_effect: Optional[bool] = None
     
     # Walkie-talkie specific parameters
     compression_ratio: Optional[float] = None
@@ -69,6 +71,16 @@ async def upload_audio(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
     
     return {"file_id": file_id, "original_filename": file.filename}
+
+def get_audio_duration(file_path):
+    """Get the duration of an audio file in seconds."""
+    try:
+        audio_segment = AudioSegment.from_file(file_path)
+        duration_seconds = len(audio_segment) / 1000.0  # Convert milliseconds to seconds
+        return round(duration_seconds, 2)  # Round to 2 decimal places
+    except Exception as e:
+        print(f"Error getting audio duration: {str(e)}")
+        return None
 
 @app.post("/transform-url/")
 async def transform_url(request: UrlTransformationRequest, background_tasks: BackgroundTasks):
@@ -127,6 +139,9 @@ async def transform_url(request: UrlTransformationRequest, background_tasks: Bac
         # Convert WAV to MP3
         convert_to_mp3(wav_output, mp3_output)
         
+        # Get audio duration
+        duration_seconds = get_audio_duration(mp3_output)
+        
         # Remove temporary WAV file
         if os.path.exists(wav_output):
             os.remove(wav_output)
@@ -142,6 +157,7 @@ async def transform_url(request: UrlTransformationRequest, background_tasks: Bac
             "effect": request.effect,
             "status": "success",
             "style_params": style_params,
+            "duration_seconds": duration_seconds,
             "download_url": download_url
         }
         
@@ -195,6 +211,9 @@ async def transform_audio(request: TransformationRequest, background_tasks: Back
         # Convert WAV to MP3
         convert_to_mp3(wav_output, mp3_output)
         
+        # Get audio duration
+        duration_seconds = get_audio_duration(mp3_output)
+        
         # Remove temporary WAV file
         if os.path.exists(wav_output):
             os.remove(wav_output)
@@ -207,6 +226,7 @@ async def transform_audio(request: TransformationRequest, background_tasks: Back
             "effect": request.effect,
             "status": "success",
             "style_params": style_params,
+            "duration_seconds": duration_seconds,
             "download_url": f"/download/{request.file_id}_{request.effect}"
         }
     except Exception as e:
